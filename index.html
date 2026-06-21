@@ -456,6 +456,10 @@ table tr:last-child td{border:none;}
       <button class="btn btn-secondary" id="dis-runout" onclick="setDismissal('Run out')">Run out</button>
       <button class="btn btn-secondary" id="dis-stumped" onclick="setDismissal('Stumped')">Stumped</button>
     </div>
+    <div id="caught-by-section" style="display:none;margin-top:-6px;margin-bottom:14px;">
+      <div class="label">Caught by</div>
+      <select class="input-field" id="caught-by-select"></select>
+    </div>
     <div id="next-batter-section" style="display:none;">
       <div class="label">Next batter in</div>
       <select class="input-field" id="wicket-next" style="margin-bottom:12px;"></select>
@@ -740,7 +744,7 @@ function setupOpeners(inIdx){
 
   // Build batting lineup
   inn.batters = batTeam.players.map(function(p){
-    return{name:p.name,runs:0,balls:0,fours:0,ones:0,out:false,dismissal:'',bowlerName:'',isJoker:false};
+    return{name:p.name,runs:0,balls:0,fours:0,ones:0,out:false,dismissal:'',bowlerName:'',fielderName:'',isJoker:false};
   });
 
   // Joker: always bats for both teams (cannot bowl for either)
@@ -748,7 +752,7 @@ function setupOpeners(inIdx){
     inn.batters.push({
       name: G.jokerName,
       runs:0,balls:0,fours:0,ones:0,
-      out:false,dismissal:'',bowlerName:'',isJoker:true
+      out:false,dismissal:'',bowlerName:'',fielderName:'',isJoker:true
     });
   }
 
@@ -1171,15 +1175,24 @@ function endMatch(){
 }
 
 // ─── Wicket ──────────────────────────────────────────────────────────────────
+// Returns a human-readable dismissal string e.g. "c Rahul b Sanjay" or "c & b Sanjay"
+function formatDismissal(b){
+  if(!b.out) return 'not out';
+  if(b.dismissal === 'c & b') return 'c & b ' + b.bowlerName;
+  if(b.dismissal && b.dismissal.startsWith('c ')) return b.dismissal + ' b ' + b.bowlerName;
+  return b.dismissal + ' b ' + b.bowlerName;
+}
 function openWicketModal(){
   var inn = curInn();
   if(!inn || inn.completed) return;
   selDismissal = null;
   // Reset all dismissal buttons
-  ['dis-bowled','dis-caught','dis-boundary'].forEach(function(id){
+  ['dis-bowled','dis-caught','dis-boundary','dis-runout','dis-stumped'].forEach(function(id){
     el(id).style.cssText = '';
   });
   el('next-batter-section').style.display = 'none';
+  el('caught-by-section').style.display = 'none';
+  el('caught-by-select').innerHTML = '';
   // Build batter-out dropdown from those currently on crease
   var onCrease = [];
   if(inn.strikerIdx !== null)
@@ -1203,6 +1216,20 @@ function setDismissal(d){
     el(map[d]).style.borderColor = 'var(--red-border)';
   }
   var inn = curInn();
+
+  // Show "Caught by" fielder dropdown only for Caught dismissal
+  if(d === 'Caught'){
+    // Fielders = bowling team players (excluding current bowler who gets the wicket credit)
+    var bowlTeam = G.teams[inn.bowling].players;
+    var currentBowler = inn.bowlers[inn.currentBowlerIdx];
+    el('caught-by-select').innerHTML = bowlTeam.map(function(p){
+      return '<option value="'+p.name+'">'+p.name+(p.name === currentBowler.name ? ' (bowler)' : '')+'</option>';
+    }).join('');
+    el('caught-by-section').style.display = 'block';
+  } else {
+    el('caught-by-section').style.display = 'none';
+  }
+
   var avail = inn.batters.filter(function(b,i){
     return !b.out && i !== inn.strikerIdx && i !== inn.nonStrikerIdx;
   });
@@ -1218,9 +1245,19 @@ function confirmWicket(){
   var outIdx  = parseInt(el('wicket-batter').value);
   var batter  = inn.batters[outIdx];
   batter.out = true;
-  batter.dismissal = selDismissal;
   batter.balls += 1;
   batter.bowlerName = inn.bowlers[inn.currentBowlerIdx].name;
+
+  // Build dismissal string — for Caught, record fielder name
+  if(selDismissal === 'Caught'){
+    var fielder = el('caught-by-select').value;
+    batter.fielderName = fielder;
+    // "c Rahul b Sanjay" style
+    batter.dismissal = fielder === batter.bowlerName ? 'c & b' : 'c ' + fielder;
+  } else {
+    batter.fielderName = '';
+    batter.dismissal = selDismissal;
+  }
   inn.wickets += 1;
   inn.balls.push('W');
 
@@ -1305,6 +1342,7 @@ function undoLast(){
         inn.batters[i].out = false;
         inn.batters[i].dismissal = '';
         inn.batters[i].bowlerName = '';
+        inn.batters[i].fielderName = '';
         inn.batters[i].balls = Math.max(0, inn.batters[i].balls - 1);
         break;
       }
@@ -1381,7 +1419,7 @@ function renderScorecard(){
       if(isSk && !b.out) html += '<span class="badge-strike" style="margin-left:5px;">&#9733;</span>';
       if(isNs && !b.out) html += '<span class="badge-ns">&dagger;</span>';
       html +=   '</div>';
-      if(b.out) html += '<div class="out-text">'+b.dismissal+' b '+b.bowlerName+'</div>';
+      if(b.out) html += '<div class="out-text">'+formatDismissal(b)+'</div>';
       else if(isSk||isNs||b.balls>0) html += '<div class="out-text">not out</div>';
       html += '</td>';
       html += '<td style="font-variant-numeric:tabular-nums;">'+b.runs+'</td>';
@@ -1459,7 +1497,7 @@ function downloadScorecardPDF(){
       var sr = b.balls > 0 ? (b.runs/b.balls*100).toFixed(0) : '-';
       html += '<tr>';
       html += '<td>'+b.name+(b.isJoker?' (Joker)':'')+'</td>';
-      html += '<td style="font-size:10px;color:#6b7280;">'+(b.out ? b.dismissal+' b '+b.bowlerName : 'not out')+'</td>';
+      html += '<td style="font-size:10px;color:#6b7280;">'+(b.out ? formatDismissal(b) : 'not out')+'</td>';
       html += '<td>'+b.runs+'</td><td>'+b.balls+'</td><td>'+b.fours+'</td><td>'+b.ones+'</td><td>'+sr+'</td>';
       html += '</tr>';
     });
