@@ -121,21 +121,66 @@ select.input-field{appearance:none;-webkit-appearance:none;background-image:url(
 .modal h3{font-size:17px;font-weight:700;margin-bottom:14px;color:var(--text);}
 
 /* Coin */
-.coin-wrap{display:flex;flex-direction:column;align-items:center;gap:14px;margin-top:30px;}
+.coin-wrap{display:flex;flex-direction:column;align-items:center;gap:18px;margin-top:30px;position:relative;}
+.coin-stage{
+  width:130px;height:130px;perspective:500px;
+  position:relative;display:flex;align-items:center;justify-content:center;
+}
+.coin-glow{
+  position:absolute;inset:-8px;border-radius:50%;
+  background:transparent;box-shadow:0 0 0 0 rgba(217,119,6,0);
+  pointer-events:none;transition:box-shadow 0.4s;
+}
+.coin-stage.spinning .coin-glow{animation:coinGlowPulse 0.22s ease-in-out infinite alternate;}
+@keyframes coinGlowPulse{
+  0%  {box-shadow:0 0 18px 4px rgba(217,119,6,0.35);}
+  100%{box-shadow:0 0 36px 10px rgba(245,158,11,0.6);}
+}
+.coin-stage.revealed-heads .coin-glow{box-shadow:0 0 32px 10px rgba(22,163,74,0.5);animation:none;}
+.coin-stage.revealed-tails .coin-glow{box-shadow:0 0 32px 10px rgba(37,99,235,0.5);animation:none;}
 .coin-face{
   width:110px;height:110px;border-radius:50%;
   display:flex;align-items:center;justify-content:center;
   font-size:34px;font-weight:700;letter-spacing:-1px;
   border:3px solid var(--border2);background:var(--bg3);color:var(--text3);
   font-family:'Outfit',system-ui,sans-serif;
-  transition:background 0.3s,color 0.3s,border-color 0.3s;
+  transform-style:preserve-3d;will-change:transform;
+  position:relative;z-index:2;
+  box-shadow:0 4px 14px rgba(0,0,0,0.1),inset 0 1px 0 rgba(255,255,255,0.6);
+  transition:background 0.35s,color 0.35s,border-color 0.35s,box-shadow 0.35s;
 }
-.coin-spin{animation:coinflip 0.85s cubic-bezier(.4,0,.2,1);}
-@keyframes coinflip{
-  0%  {transform:rotateY(0deg)   scale(1);}
-  30% {transform:rotateY(90deg)  scale(1.08);}
-  60% {transform:rotateY(270deg) scale(1.08);}
-  100%{transform:rotateY(360deg) scale(1);}
+.coin-spin{animation:coinflip3d 0.92s cubic-bezier(.36,.07,.19,.97) forwards;}
+@keyframes coinflip3d{
+  0%  {transform:rotateY(0deg)   translateY(0px)   scale(1);}
+  18% {transform:rotateY(180deg) translateY(-22px) scale(1.07);}
+  36% {transform:rotateY(360deg) translateY(-34px) scale(1.12);}
+  54% {transform:rotateY(540deg) translateY(-20px) scale(1.07);}
+  72% {transform:rotateY(720deg) translateY(-8px)  scale(1.03);}
+  88% {transform:rotateY(855deg) translateY(-2px)  scale(1.01);}
+  100%{transform:rotateY(900deg) translateY(0px)   scale(1);}
+}
+.coin-reveal{animation:coinReveal 0.42s cubic-bezier(0.175,0.885,0.32,1.275) both;}
+@keyframes coinReveal{
+  0%  {transform:scale(0.65);}
+  60% {transform:scale(1.2);}
+  80% {transform:scale(0.93);}
+  100%{transform:scale(1);}
+}
+.coin-particle{
+  position:absolute;width:7px;height:7px;border-radius:50%;
+  pointer-events:none;opacity:0;
+  animation:coinParticle 0.7s ease-out forwards;
+}
+@keyframes coinParticle{
+  0%  {opacity:1;transform:translate(0,0) scale(1);}
+  100%{opacity:0;transform:translate(var(--px),var(--py)) scale(0.2);}
+}
+#coin-result{font-size:18px;color:var(--text2);min-height:28px;font-weight:700;text-align:center;letter-spacing:-0.3px;transition:color 0.3s;}
+#coin-result.result-heads{color:#15803d;animation:resultPop 0.4s 0.08s cubic-bezier(0.175,0.885,0.32,1.275) both;}
+#coin-result.result-tails{color:#1d4ed8;animation:resultPop 0.4s 0.08s cubic-bezier(0.175,0.885,0.32,1.275) both;}
+@keyframes resultPop{
+  0%  {opacity:0;transform:translateY(9px) scale(0.8);}
+  100%{opacity:1;transform:translateY(0)   scale(1);}
 }
 
 /* Innings header (scorecard) */
@@ -188,6 +233,202 @@ table tr:last-child td{border:none;}
   #print-scorecard .pr-result{background:#f0fdf4;border:1px solid #86efac;padding:10px 14px;border-radius:8px;margin-bottom:16px;}
   #print-scorecard .pr-inn-header{display:flex;justify-content:space-between;align-items:center;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:8px 12px;margin:10px 0 4px;}
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   ANIMATIONS
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Shared overlay — pointer-events:none so it never blocks taps */
+#anim-overlay{
+  position:fixed;inset:0;pointer-events:none;z-index:9999;overflow:hidden;
+}
+
+/* ── FOUR ANIMATION ─────────────────────────────────────────────── */
+#four-burst{
+  display:none;position:absolute;inset:0;
+  align-items:center;justify-content:center;flex-direction:column;
+}
+#four-burst.show{display:flex;}
+
+.four-bg{
+  position:absolute;inset:0;
+  background:radial-gradient(ellipse at center,rgba(22,163,74,0.2) 0%,transparent 68%);
+  animation:fourBgPulse 0.9s ease-out forwards;
+}
+@keyframes fourBgPulse{
+  0%  {opacity:0;transform:scale(0.4);}
+  40% {opacity:1;transform:scale(1.1);}
+  100%{opacity:0;transform:scale(1.5);}
+}
+
+.four-text{
+  font-family:'Outfit',system-ui,sans-serif;
+  font-size:108px;font-weight:700;color:#16a34a;letter-spacing:-4px;line-height:1;
+  text-shadow:0 6px 28px rgba(22,163,74,0.45);
+  -webkit-text-stroke:3px #fff;paint-order:stroke fill;
+  animation:fourTextPop 0.8s cubic-bezier(0.175,0.885,0.32,1.275) forwards;
+  position:relative;z-index:2;
+}
+@keyframes fourTextPop{
+  0%  {opacity:0;transform:scale(0.2) rotate(-12deg);}
+  55% {opacity:1;transform:scale(1.18) rotate(3deg);}
+  75% {transform:scale(0.94) rotate(-1.5deg);}
+  88% {transform:scale(1.04) rotate(0.5deg);}
+  100%{opacity:1;transform:scale(1) rotate(0deg);}
+}
+
+.four-label{
+  font-family:'Outfit',system-ui,sans-serif;
+  font-size:17px;font-weight:700;letter-spacing:7px;text-transform:uppercase;
+  color:#15803d;margin-top:-4px;position:relative;z-index:2;
+  animation:slideUp 0.7s 0.1s ease-out both;
+}
+@keyframes slideUp{
+  0%  {opacity:0;transform:translateY(14px);}
+  100%{opacity:1;transform:translateY(0);}
+}
+
+/* Radiating star sparks */
+.four-star{
+  position:absolute;border-radius:50%;background:#22c55e;
+  animation:starBurst 0.85s ease-out forwards;
+}
+@keyframes starBurst{
+  0%  {opacity:1;transform:translate(0,0) scale(1);}
+  100%{opacity:0;transform:translate(var(--tx),var(--ty)) scale(0);}
+}
+
+/* Boundary rope sweep at the bottom */
+.boundary-sweep{
+  position:absolute;bottom:0;left:-10%;width:120%;height:5px;
+  background:linear-gradient(90deg,transparent,#22c55e,#86efac,#22c55e,transparent);
+  animation:sweepAcross 0.65s 0.05s ease-out both;border-radius:3px;
+}
+@keyframes sweepAcross{
+  0%  {opacity:0;transform:scaleX(0) translateX(-50%);}
+  55% {opacity:1;transform:scaleX(1) translateX(0);}
+  100%{opacity:0;transform:scaleX(1.1) translateX(5%);}
+}
+
+/* ── WICKET ANIMATION ───────────────────────────────────────────── */
+#wicket-burst{
+  display:none;position:absolute;inset:0;
+  align-items:center;justify-content:center;flex-direction:column;
+}
+#wicket-burst.show{display:flex;}
+
+.wicket-bg{
+  position:absolute;inset:0;
+  background:radial-gradient(ellipse at center,rgba(220,38,38,0.18) 0%,transparent 65%);
+  animation:wicketBgPulse 0.85s ease-out forwards;
+}
+@keyframes wicketBgPulse{
+  0%  {opacity:0;transform:scale(0.5);}
+  35% {opacity:1;transform:scale(1.05);}
+  100%{opacity:0;transform:scale(1.4);}
+}
+
+/* Stumps that fly off */
+.wicket-stumps{
+  position:relative;z-index:2;display:flex;gap:8px;
+  align-items:flex-end;margin-bottom:14px;
+}
+.ws{
+  width:11px;border-radius:4px 4px 0 0;
+  background:linear-gradient(180deg,#d97706,#92400e);
+  transform-origin:bottom center;
+  animation:stumpFly 0.75s ease-out forwards;
+  position:relative;
+}
+.ws:nth-child(1){height:50px;animation-delay:0.00s;--rx:-70px;--ry:-85px;--rot:-42deg;}
+.ws:nth-child(2){height:56px;animation-delay:0.04s;--rx:  2px;--ry:-98px;--rot:  6deg;}
+.ws:nth-child(3){height:50px;animation-delay:0.08s;--rx: 68px;--ry:-82px;--rot: 44deg;}
+@keyframes stumpFly{
+  0%  {opacity:1;transform:translate(0,0) rotate(0deg);}
+  15% {opacity:1;}
+  100%{opacity:0;transform:translate(var(--rx),var(--ry)) rotate(var(--rot));}
+}
+
+/* Bails that pop off the top */
+.wb{
+  position:absolute;top:-5px;left:-3px;right:-3px;height:6px;
+  background:#b45309;border-radius:3px;
+  animation:bailPop 0.5s 0.04s ease-out forwards;
+}
+@keyframes bailPop{
+  0%  {opacity:1;transform:translate(0,0) rotate(0deg);}
+  100%{opacity:0;transform:translate(10px,-60px) rotate(200deg);}
+}
+
+.wicket-text{
+  font-family:'Outfit',system-ui,sans-serif;
+  font-size:80px;font-weight:700;color:#dc2626;letter-spacing:-2px;line-height:1;
+  text-shadow:0 4px 24px rgba(220,38,38,0.4);
+  -webkit-text-stroke:2.5px #fff;paint-order:stroke fill;
+  animation:wicketShake 0.7s cubic-bezier(0.36,0.07,0.19,0.97) forwards;
+  position:relative;z-index:2;
+}
+@keyframes wicketShake{
+  0%  {opacity:0;transform:scale(0.4) translateY(12px);}
+  30% {opacity:1;transform:scale(1.12) translateY(0);}
+  44% {transform:scale(1.06) translateX(5px);}
+  58% {transform:scale(1.09) translateX(-5px);}
+  72% {transform:scale(1.03) translateX(3px);}
+  86% {transform:scale(1.01) translateX(-1px);}
+  100%{opacity:1;transform:scale(1) translateX(0);}
+}
+
+.wicket-label{
+  font-family:'Outfit',system-ui,sans-serif;
+  font-size:14px;font-weight:700;letter-spacing:5px;text-transform:uppercase;
+  color:#b91c1c;position:relative;z-index:2;
+  animation:slideUp 0.6s 0.15s ease-out both;
+}
+
+/* Radiating crack lines */
+.crack{
+  position:absolute;width:2px;border-radius:1px;
+  background:linear-gradient(to top,#ef4444,transparent);
+  transform-origin:bottom center;
+  animation:crackGrow 0.55s 0.05s ease-out both;
+}
+@keyframes crackGrow{
+  0%  {opacity:0;transform:rotate(var(--angle)) scaleY(0);}
+  55% {opacity:0.8;transform:rotate(var(--angle)) scaleY(1);}
+  100%{opacity:0;transform:rotate(var(--angle)) scaleY(1.05);}
+}
+
+/* ── JOKER ANIMATED NAME TEXT ────────────────────────────────────── */
+.joker-name-animated{
+  display:inline-flex;align-items:center;
+  gap:1px;position:relative;margin-top:6px;
+}
+.joker-bolt{
+  font-size:15px;margin-right:3px;flex-shrink:0;
+  filter:drop-shadow(0 0 4px #b8860b);
+}
+.jc{
+  display:inline-block;
+  font-weight:700;font-size:13px;
+  color:#a0720a;
+  animation:jokerGlow 2.2s ease-in-out infinite;
+}
+@keyframes jokerGlow{
+  0%,100%{
+    text-shadow:0 0 6px rgba(184,134,11,0.5), 0 0 12px rgba(184,134,11,0.25);
+    opacity:1;
+  }
+  50%{
+    text-shadow:0 0 10px rgba(184,134,11,0.85), 0 0 22px rgba(218,165,32,0.5), 0 0 38px rgba(218,165,32,0.2);
+    opacity:0.9;
+  }
+}
+
+@media (prefers-reduced-motion:reduce){
+  .four-text,.four-label,.four-bg,.four-star,.boundary-sweep,
+  .ws,.wb,.wicket-text,.wicket-label,.wicket-bg,.crack,
+  .jc,.joker-bolt{animation:none!important;}
+}
 </style>
 </head>
 <body>
@@ -237,7 +478,6 @@ table tr:last-child td{border:none;}
       </div>
     </div>
 
-    <!-- Joker section — always shown as its own section -->
     <div class="section-title" style="margin-top:4px;">Joker <span style="font-size:9px;font-weight:600;color:var(--text3);letter-spacing:0.5px;text-transform:none;">(optional)</span></div>
     <div class="card" style="margin-bottom:16px;" id="joker-section">
       <div style="font-size:13px;color:var(--text2);margin-bottom:10px;line-height:1.5;">The Joker bats for <strong>both</strong> teams but cannot bowl for either. Add one when teams are uneven, or for fun.</div>
@@ -247,8 +487,7 @@ table tr:last-child td{border:none;}
       </div>
       <div id="joker-active-display" style="display:none;margin-bottom:10px;">
         <div style="display:flex;align-items:center;gap:8px;background:var(--amber-light);border:1px solid var(--amber-border);border-radius:var(--radius-xs);padding:10px 12px;">
-          <span style="font-size:20px;">⚡</span>
-          <span style="font-size:13px;font-weight:600;color:var(--amber);flex:1;" id="joker-active-name"></span>
+          <span id="joker-active-name" style="flex:1;font-size:14px;font-weight:700;color:var(--amber);"></span>
           <button class="btn btn-secondary btn-sm" onclick="removeJoker()" style="color:var(--red);border-color:var(--red-border);">Remove</button>
         </div>
         <div style="font-size:11px;color:var(--text2);margin-top:6px;">Bats for both teams · Cannot bowl</div>
@@ -256,7 +495,6 @@ table tr:last-child td{border:none;}
       <button class="btn btn-secondary" id="joker-add-btn" onclick="addJoker()">Add Joker</button>
     </div>
 
-    <!-- Uneven teams blocker — shown when teams are uneven and no joker added -->
     <div id="uneven-blocker" style="display:none;margin-bottom:16px;">
       <div class="info-box info-box-amber">
         <div class="info-box-title" style="color:var(--amber);">⚠️ Uneven teams</div>
@@ -280,8 +518,8 @@ table tr:last-child td{border:none;}
   </div>
   <div class="content pad" style="display:flex;flex-direction:column;align-items:center;gap:20px;">
     <div class="coin-wrap">
-      <div class="coin-face" id="coin-face">?</div>
-      <div id="coin-result" style="font-size:16px;color:var(--text2);min-height:24px;font-weight:600;text-align:center;"></div>
+      <div class="coin-stage" id="coin-stage"><div class="coin-glow" id="coin-glow"></div><div class="coin-face" id="coin-face">?</div></div>
+      <div id="coin-result"></div>
     </div>
     <button class="btn btn-primary" id="toss-btn" onclick="flipCoin()" style="width:200px;">Flip Coin</button>
     <div id="toss-choice" style="display:none;width:100%;">
@@ -319,8 +557,6 @@ table tr:last-child td{border:none;}
     <button class="btn btn-secondary btn-sm" onclick="showScorecard('match')" style="width:auto;padding:6px 12px;font-size:12px;">Scorecard</button>
   </div>
   <div class="content">
-
-    <!-- Score header -->
     <div class="live-score-zone">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;">
         <div>
@@ -340,7 +576,6 @@ table tr:last-child td{border:none;}
       <div id="lead-banner" style="display:none;background:var(--accent-light);border:1px solid var(--accent-border);border-radius:var(--radius-xs);padding:8px 10px;margin-top:10px;text-align:center;font-size:13px;color:var(--accent);font-weight:500;"></div>
     </div>
 
-    <!-- Batters + bowler -->
     <div class="live-batters-zone">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
         <div style="flex:1;min-width:0;">
@@ -365,7 +600,6 @@ table tr:last-child td{border:none;}
       <div style="font-size:11px;color:var(--text2);margin-top:6px;font-weight:500;" id="partnership-info"></div>
     </div>
 
-    <!-- Input -->
     <div class="live-input-zone">
       <div class="section-title">Record this ball</div>
       <div class="ball-grid">
@@ -402,7 +636,6 @@ table tr:last-child td{border:none;}
     </div>
     <div id="break-heading" style="font-size:22px;font-weight:700;letter-spacing:-0.5px;"></div>
     <div id="break-sub" style="font-size:14px;color:var(--text2);max-width:300px;line-height:1.6;"></div>
-    <!-- Follow-on offer (test only, innings 2 end) -->
     <div id="followon-section" style="display:none;width:100%;text-align:left;">
       <div class="followon-banner">
         <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:4px;">⚡ Follow-On Available</div>
@@ -439,7 +672,29 @@ table tr:last-child td{border:none;}
 
 </div><!-- #app -->
 
-<!-- Hidden print scorecard — only visible during print -->
+<!-- ═══ ANIMATION OVERLAY (outside #app, always on top) ═══ -->
+<div id="anim-overlay">
+  <!-- FOUR burst -->
+  <div id="four-burst">
+    <div class="four-bg"></div>
+    <div class="boundary-sweep"></div>
+    <div class="four-text">4</div>
+    <div class="four-label">Boundary!</div>
+  </div>
+  <!-- WICKET burst -->
+  <div id="wicket-burst">
+    <div class="wicket-bg"></div>
+    <div class="wicket-stumps">
+      <div class="ws"><div class="wb"></div></div>
+      <div class="ws"><div class="wb"></div></div>
+      <div class="ws"><div class="wb"></div></div>
+    </div>
+    <div class="wicket-text">OUT!</div>
+    <div class="wicket-label">Wicket</div>
+  </div>
+</div>
+
+<!-- Hidden print scorecard -->
 <div id="print-scorecard" style="display:none;padding:20px;font-family:system-ui,sans-serif;color:#111;"></div>
 
 <!-- ========== WICKET MODAL ========== -->
@@ -479,7 +734,7 @@ table tr:last-child td{border:none;}
 </div>
 
 <script>
-// ─── Global state ───────────────────────────────────────────────────────────
+// ─── Global state ────────────────────────────────────────────────────────────
 var G = {
   format:'limited', overs:6,
   teams:[{name:'Team A',players:[]},{name:'Team B',players:[]}],
@@ -501,16 +756,14 @@ function showScreen(id){
   el('screen-'+id).classList.add('active');
 }
 
-// ─── Scorecard navigation (tracks where to return) ──────────────────────────
 function showScorecard(from){
   G.scorecardFrom = from || (G.matchOver ? 'result' : 'match');
   renderScorecard();
   showScreen('scorecard');
-  // Set back button dynamically so it always returns to the right screen
   el('scorecard-back-btn').onclick = function(){ showScreen(G.scorecardFrom); };
 }
 
-// ─── Format selection ────────────────────────────────────────────────────────
+// ─── Format selection ─────────────────────────────────────────────────────────
 function selectFormat(f){
   G.format = f;
   el('fmt-limited').classList.toggle('selected', f==='limited');
@@ -518,7 +771,7 @@ function selectFormat(f){
   el('overs-row').style.display = f==='limited' ? 'block' : 'none';
 }
 
-// ─── Player management ───────────────────────────────────────────────────────
+// ─── Player management ────────────────────────────────────────────────────────
 function addPlayer(t){
   var inp = el('team'+t+'-input');
   var nm = inp.value.trim();
@@ -548,20 +801,13 @@ function renderPlayers(t){
     }).join('')+'</div>';
 }
 
-// ─── Joker system ────────────────────────────────────────────────────────────
-// Joker bats for BOTH teams but cannot bowl for either.
-// The joker section is always visible.
-// If teams are uneven, the user MUST resolve it before continuing:
-//   Option A — use the suggested (last) player of the bigger team as joker
-//   Option B — just remove that player (don't add them anywhere)
-
+// ─── Joker system ─────────────────────────────────────────────────────────────
 function checkJoker(){
   var p1 = G.teams[0].players.length;
   var p2 = G.teams[1].players.length;
   var uneven = p1 !== p2 && p1 > 0 && p2 > 0;
 
   if(uneven && !G.jokerEnabled){
-    // Identify suggested player (last added to larger team)
     var largerTeam = p1 > p2 ? 0 : 1;
     var largerPlayers = G.teams[largerTeam].players;
     var suggestedPlayer = largerPlayers[largerPlayers.length - 1];
@@ -599,30 +845,41 @@ function removeJoker(){
   checkJoker();
 }
 
-// Called from the uneven blocker: pull suggested player out of their team, set as joker
 function useUnevenPlayerAsJoker(){
   var t = G._jokerSuggestedTeam;
   var players = G.teams[t].players;
   var p = players[players.length - 1];
   if(!p) return;
-  // Pre-fill joker name input and remove from team
   if(el('joker-name-input')) el('joker-name-input').value = p.name;
   G.jokerEnabled = true;
   G.jokerName = p.name;
-  // Remove from that team
   G.teams[t].players.splice(players.length - 1, 1);
   renderPlayers(t + 1);
   updateJokerUI();
   checkJoker();
 }
 
-// Called from the uneven blocker: just remove the suggested player, no joker
 function removeUnevenPlayer(){
   var t = G._jokerSuggestedTeam;
   var players = G.teams[t].players;
   G.teams[t].players.splice(players.length - 1, 1);
   renderPlayers(t + 1);
   checkJoker();
+}
+
+// Build the animated joker name for the active-display area
+function makeAnimatedJokerName(name){
+  if(!name) return '';
+  var chars = name.split('').map(function(ch, i){
+    var delay = (i * 0.08).toFixed(2);
+    return '<span class="jc" style="animation-delay:'+delay+'s">'+
+      (ch === ' ' ? '&nbsp;' : ch)+'</span>';
+  }).join('');
+
+  return '<span class="joker-name-animated">'+
+    '<span class="joker-bolt">⚡</span>'+
+    chars+
+    '</span>';
 }
 
 function updateJokerUI(){
@@ -633,7 +890,8 @@ function updateJokerUI(){
     if(addBtn) addBtn.style.display = 'none';
     if(nameRow) nameRow.style.display = 'none';
     if(activeDisplay) activeDisplay.style.display = 'block';
-    el('joker-active-name').textContent = G.jokerName || 'Joker';
+    // Render animated name
+    el('joker-active-name').innerHTML = makeAnimatedJokerName(G.jokerName || 'Joker');
   } else {
     if(addBtn) addBtn.style.display = 'flex';
     if(nameRow) nameRow.style.display = 'block';
@@ -641,17 +899,15 @@ function updateJokerUI(){
   }
 }
 
-// Alias for backward compat with resetAll
 function updateJokerBtn(){ updateJokerUI(); }
 
-// ─── Toss ────────────────────────────────────────────────────────────────────
+// ─── Toss ─────────────────────────────────────────────────────────────────────
 function goToToss(){
   G.teams[0].name = el('team1-name').value.trim() || 'Team A';
   G.teams[1].name = el('team2-name').value.trim() || 'Team B';
   G.overs = parseInt(el('input-overs').value) || 6;
   if(!G.teams[0].players.length){alert('Add at least 1 player to '+G.teams[0].name);return;}
   if(!G.teams[1].players.length){alert('Add at least 1 player to '+G.teams[1].name);return;}
-  // Block if teams are still uneven (user must resolve via joker section)
   var p1 = G.teams[0].players.length, p2 = G.teams[1].players.length;
   if(p1 !== p2 && !G.jokerEnabled){
     el('uneven-blocker').scrollIntoView({behavior:'smooth',block:'center'});
@@ -661,55 +917,113 @@ function goToToss(){
     return '<option value="'+i+'">'+t.name+'</option>';
   }).join('');
   el('toss-choice').style.display = 'none';
-  // Reset coin to neutral state
   var c = el('coin-face');
   c.textContent = '?';
   c.style.background = 'var(--bg3)';
   c.style.color = 'var(--text3)';
   c.style.borderColor = 'var(--border2)';
-  el('coin-result').textContent = '';
+  var cr = el('coin-result'); cr.textContent = ''; cr.className = '';
+  if(el('coin-stage')){ el('coin-stage').classList.remove('spinning','revealed-heads','revealed-tails'); }
+  c.classList.remove('coin-spin','coin-reveal'); c.style.boxShadow = '';
   selDismissal = null;
   showScreen('toss');
+}
+
+function spawnCoinParticles(isHeads){
+  var stage = el('coin-stage');
+  var colors = isHeads
+    ? ['#22c55e','#86efac','#4ade80','#dcfce7']
+    : ['#3b82f6','#93c5fd','#60a5fa','#dbeafe'];
+  for(var i=0;i<12;i++){
+    var p = document.createElement('div');
+    p.className = 'coin-particle';
+    var angle = (i/12)*360 + Math.random()*25;
+    var dist  = 55 + Math.random()*45;
+    var rad   = angle * Math.PI/180;
+    var px    = Math.cos(rad)*dist;
+    var py    = Math.sin(rad)*dist;
+    p.style.cssText =
+      '--px:'+px.toFixed(1)+'px;--py:'+py.toFixed(1)+'px;'+
+      'background:'+colors[i%colors.length]+';'+
+      'animation-delay:'+(Math.random()*0.08).toFixed(2)+'s;'+
+      'top:calc(50% - 3.5px);left:calc(50% - 3.5px);';
+    stage.appendChild(p);
+    setTimeout(function(el){stage.removeChild(el);},850,p);
+  }
 }
 
 function flipCoin(){
   var c = el('coin-face');
   var r = el('coin-result');
   var b = el('toss-btn');
-  // Restart animation
-  c.classList.remove('coin-spin');
-  void c.offsetWidth; // reflow to reset animation
+  var stage = el('coin-stage');
+
+  // Reset
+  c.classList.remove('coin-spin','coin-reveal');
+  r.className = '';
+  stage.classList.remove('spinning','revealed-heads','revealed-tails');
+  void c.offsetWidth;
+
+  // Start spin
   c.classList.add('coin-spin');
+  stage.classList.add('spinning');
   b.disabled = true;
   r.textContent = 'Flipping...';
-  // Reset to neutral mid-flip
   c.textContent = '?';
   c.style.background = 'var(--bg3)';
   c.style.color = 'var(--text3)';
   c.style.borderColor = 'var(--border2)';
+  c.style.boxShadow = '';
+
+  // Play suspense sound
+  playSoundToss();
+
+  var isHeads = Math.random() < 0.5;
+
   setTimeout(function(){
-    var isHeads = Math.random() < 0.5;
-    // Use plain text H / T — no emojis, no entity codes that render weirdly
-    c.textContent = isHeads ? 'H' : 'T';
-    c.style.background = isHeads ? '#dcfce7' : '#dbeafe';
-    c.style.color = isHeads ? '#15803d' : '#1d4ed8';
-    c.style.borderColor = isHeads ? '#86efac' : '#93c5fd';
-    r.textContent = isHeads ? 'Heads!' : 'Tails!';
+    // Reveal
+    c.classList.remove('coin-spin');
+    stage.classList.remove('spinning');
+    void c.offsetWidth;
+    c.classList.add('coin-reveal');
+
+    if(isHeads){
+      c.textContent = 'H';
+      c.style.background = '#dcfce7';
+      c.style.color = '#15803d';
+      c.style.borderColor = '#86efac';
+      c.style.boxShadow = '0 0 24px 6px rgba(22,163,74,0.35), inset 0 1px 0 rgba(255,255,255,0.7)';
+      stage.classList.add('revealed-heads');
+      r.className = 'result-heads';
+      r.textContent = 'Heads!';
+    } else {
+      c.textContent = 'T';
+      c.style.background = '#dbeafe';
+      c.style.color = '#1d4ed8';
+      c.style.borderColor = '#93c5fd';
+      c.style.boxShadow = '0 0 24px 6px rgba(37,99,235,0.35), inset 0 1px 0 rgba(255,255,255,0.7)';
+      stage.classList.add('revealed-tails');
+      r.className = 'result-tails';
+      r.textContent = 'Tails!';
+    }
+
+    spawnCoinParticles(isHeads);
+    playSoundTossReveal(isHeads);
+
     b.disabled = false;
     el('toss-choice').style.display = 'block';
-  }, 900);
+  }, 950);
 }
 
 function setChoice(c){
   G.tossChoice = c;
-  // Highlight chosen option
   var batOn  = c === 'bat';
   var bowlOn = c === 'bowl';
   el('bat-btn').style.cssText  = batOn  ? 'background:var(--accent-light);color:var(--accent);border-color:var(--accent-border);' : '';
   el('bowl-btn').style.cssText = bowlOn ? 'background:var(--accent-light);color:var(--accent);border-color:var(--accent-border);' : '';
 }
 
-// ─── Match setup ─────────────────────────────────────────────────────────────
+// ─── Match setup ──────────────────────────────────────────────────────────────
 function startMatch(){
   if(!G.tossChoice) setChoice('bat');
   var winner = parseInt(el('toss-winner').value);
@@ -735,27 +1049,23 @@ function makeInnings(bat, bowl){
   };
 }
 
-// ─── Openers ─────────────────────────────────────────────────────────────────
+// ─── Openers ──────────────────────────────────────────────────────────────────
 function setupOpeners(inIdx){
   G.currentInnings = inIdx;
   var inn = G.innings[inIdx];
   var batTeam  = G.teams[inn.batting];
   var bowlTeam = G.teams[inn.bowling];
 
-  // Build batting lineup
   inn.batters = batTeam.players.map(function(p){
     return{name:p.name,runs:0,balls:0,fours:0,ones:0,out:false,dismissal:'',bowlerName:'',fielderName:'',isJoker:false};
   });
-
-  // Joker: always bats for both teams (cannot bowl for either)
   if(G.jokerEnabled && G.jokerName){
     inn.batters.push({
-      name: G.jokerName,
+      name:G.jokerName,
       runs:0,balls:0,fours:0,ones:0,
       out:false,dismissal:'',bowlerName:'',fielderName:'',isJoker:true
     });
   }
-
   inn.bowlers = bowlTeam.players.map(function(p){
     return{name:p.name,balls:0,runs:0,wickets:0,maidens:0,curOverRuns:0};
   });
@@ -804,7 +1114,6 @@ function updateMatchUI(){
   el('live-score').textContent = inn.score+'/'+inn.wickets;
   el('live-overs-label').textContent = co+'.'+bo+' ov'+(G.format==='limited' ? ' / '+G.overs+' ov' : '');
 
-  // Declare draw button: visible in test from 3rd innings onward (when things can drag)
   var drawBtn = el('declare-draw-btn');
   if(drawBtn) drawBtn.style.display = (G.format==='test' && G.currentInnings >= 2) ? 'flex' : 'none';
 
@@ -839,30 +1148,33 @@ function updateMatchUI(){
     }
   }
 
-  // Batters at crease
   var striker = inn.strikerIdx !== null ? inn.batters[inn.strikerIdx] : null;
   var nonStk  = inn.nonStrikerIdx !== null ? inn.batters[inn.nonStrikerIdx] : null;
 
-  el('b1-name').textContent = striker ? striker.name : '—';
-  // BUG FIX: was inn.fours (undefined) — now correctly striker.fours
+  el('b1-name').innerHTML = striker
+    ? (striker.isJoker
+        ? makeAnimatedJokerName(striker.name)
+        : striker.name)
+    : '—';
   el('b1-stats').textContent = striker
     ? striker.runs+' ('+striker.balls+'b) \u00b7 '+striker.fours+'4s \u00b7 SR '+(striker.balls>0 ? (striker.runs/striker.balls*100).toFixed(0) : '0')
     : '';
   el('b1-strike').style.display = striker ? 'inline-flex' : 'none';
 
-  el('b2-name').textContent = nonStk ? nonStk.name : '—';
+  el('b2-name').innerHTML = nonStk
+    ? (nonStk.isJoker
+        ? makeAnimatedJokerName(nonStk.name)
+        : nonStk.name)
+    : '—';
   el('b2-stats').textContent = nonStk ? nonStk.runs+' ('+nonStk.balls+'b)' : '';
 
-  // Bowler
   var bwlr = inn.bowlers[inn.currentBowlerIdx];
   el('bowler-name').textContent = bwlr.name;
   el('bowler-stats').textContent = Math.floor(bwlr.balls/6)+'.'+bwlr.balls%6+' \u00b7 '+bwlr.runs+' runs \u00b7 '+bwlr.wickets+'w';
 
-  // Partnership
   var cp = inn.partnerships.length ? inn.partnerships[inn.partnerships.length-1] : null;
   el('partnership-info').textContent = cp && cp.balls > 0 ? 'Partnership: '+cp.runs+' ('+cp.balls+'b)' : '';
 
-  // Ball log for current over
   var overStart = co * 6;
   el('ball-log').innerHTML = inn.balls.slice(overStart).map(ballDot).join('');
 }
@@ -872,11 +1184,10 @@ function ballDot(b){
   return '<div class="ball-dot bd'+b+'">'+(b === 0 ? '\u00b7' : b)+'</div>';
 }
 
-// ─── Scoring ─────────────────────────────────────────────────────────────────
+// ─── Scoring ──────────────────────────────────────────────────────────────────
 function addRuns(runs){
   var inn = curInn();
   if(!inn || inn.completed) return;
-  // BUG FIX #1: guard against null striker (single batter scenario)
   if(inn.strikerIdx === null) return;
 
   inn.balls.push(runs);
@@ -899,13 +1210,17 @@ function addRuns(runs){
     cp.balls += 1;
   }
 
+  // 🎉 FOUR animation + sound
+  if(runs === 4){ triggerFourAnim(); playSoundFour(); }
+  if(runs === 1) playSoundOne();
+  if(runs === 2) playSoundTwo();
+
   if(runs % 2 === 1) rotateStrike(inn);
 
   if(inn.balls.length % 6 === 0) endOver(inn);
   else{ checkInningsEnd(); if(!inn.completed) updateMatchUI(); }
 }
 
-// Only rotate when BOTH batters are present — single batter stays on strike
 function rotateStrike(inn){
   if(inn.strikerIdx === null || inn.nonStrikerIdx === null) return;
   var tmp = inn.strikerIdx;
@@ -917,7 +1232,7 @@ function endOver(inn){
   var bwlr = inn.bowlers[inn.currentBowlerIdx];
   if(bwlr.curOverRuns === 0) bwlr.maidens += 1;
   bwlr.curOverRuns = 0;
-  rotateStrike(inn); // end-of-over rotation also respects single-batter guard
+  rotateStrike(inn);
   if(G.format==='limited' && inn.balls.length >= G.overs * 6){ completeInnings(); return; }
   checkInningsEnd();
   if(!inn.completed){ openBowlerModal(); updateMatchUI(); }
@@ -931,11 +1246,9 @@ function checkInningsEnd(){
   if(totalOut >= inn.batters.length){ completeInnings(); return; }
   if(G.format==='limited' && inn.balls.length >= G.overs * 6){ completeInnings(); return; }
   if(G.format==='limited' && G.currentInnings === 1 && inn.score > G.innings[0].score){ completeInnings(); return; }
-  // Test: innings 4 — chasing team takes the lead → match over
   if(G.format==='test' && G.currentInnings === 3){
     if(computeLead() > 0){ completeInnings(); return; }
   }
-  // Test: innings 3 — if batting team still can't take overall lead after all out → innings win
   if(G.format==='test' && G.currentInnings === 2){
     var allOut = totalOut >= inn.batters.length || inn.strikerIdx === null;
     if(allOut && computeLead() <= 0){ completeInnings(); return; }
@@ -953,7 +1266,7 @@ function computeLead(){
   return batScore - oppScore;
 }
 
-// ─── Innings end ─────────────────────────────────────────────────────────────
+// ─── Innings end ──────────────────────────────────────────────────────────────
 function completeInnings(){
   var inn = curInn();
   if(inn.completed) return;
@@ -961,15 +1274,12 @@ function completeInnings(){
   var next = G.currentInnings + 1;
   var maxInnings = G.format === 'test' ? 4 : 2;
 
-  // Test innings 3: check if batting team still trails → innings win for bowling team
   if(G.format === 'test' && G.currentInnings === 2){
-    // computeLead from perspective of innings[2] batting team
     var i0 = G.innings[0], i2 = G.innings[2];
-    var bat3 = i2.batting;  // team batting in 3rd innings
+    var bat3 = i2.batting;
     var total3 = i0.batting === bat3 ? i0.score + i2.score : i2.score;
     var opp3   = i0.batting === bat3 ? G.innings[1].score  : i0.score + G.innings[1].score;
     if(total3 <= opp3){
-      // Innings win! Team that batted 1st & 3rd wins — actually the team that bowled 3rd (batted 2nd) wins by an innings
       G.currentInnings = 2;
       G._inningsWin = true;
       endMatch();
@@ -998,7 +1308,6 @@ function showInningsBreak(nextIdx){
   if(el('break-topbar-title')) el('break-topbar-title').textContent = 'Innings Break';
   el('break-heading').textContent = G.teams[inn.batting].name+': '+inn.score+'/'+inn.wickets;
   var sub = '';
-  // Hide follow-on and normal buttons by default
   el('followon-section').style.display = 'none';
   el('break-normal-btns').style.display = 'flex';
 
@@ -1006,7 +1315,6 @@ function showInningsBreak(nextIdx){
     var tgt = inn.score + 1;
     sub = G.teams[nextInn.batting].name+' need '+tgt+' to win in '+G.overs+' overs.';
   } else {
-    // Compute cumulative positions
     var bat = inn.batting;
     var totBat = 0, totOpp = 0;
     G.innings.slice(0, G.currentInnings + 1).forEach(function(i){
@@ -1017,12 +1325,7 @@ function showInningsBreak(nextIdx){
     else if(diff < 0) sub = G.teams[bat].name+' trail by '+Math.abs(diff)+'.';
     else              sub = 'Scores level.';
 
-    // After innings 2 (currentInnings===1): check follow-on
-    // Team that just batted is the chasing team (innings[1].batting)
-    // They trail if diff < 0 from their perspective
     if(G.currentInnings === 1){
-      // diff above is from perspective of innings[1].batting team
-      // If they trail, follow-on is available
       if(diff < 0){
         var trail = Math.abs(diff);
         var team2name = G.teams[inn.batting].name;
@@ -1037,7 +1340,6 @@ function showInningsBreak(nextIdx){
 
     sub += ' '+G.teams[nextInn.batting].name+' bat next.';
     if(nextIdx === 3){
-      // Show target for 4th innings
       var t4bat = nextInn.batting;
       var t4need = 0;
       G.innings.slice(0,3).forEach(function(i){ t4need += (i.batting === t4bat ? -i.score : i.score); });
@@ -1049,9 +1351,7 @@ function showInningsBreak(nextIdx){
   showScreen('innings-break');
 }
 
-// Follow-on: team 2 bats again (innings index 2 is now team2, innings index 3 is team1)
 function enforceFollowOn(){
-  // Swap innings 2 & 3 so team2 bats in slot 2, team1 in slot 3
   var tmp = G.innings[2];
   G.innings[2] = G.innings[3];
   G.innings[3] = tmp;
@@ -1068,7 +1368,7 @@ function startNextInnings(){
   setupOpeners(G.pendingNextInnings);
 }
 
-// ─── Declare Draw (test only) ─────────────────────────────────────────────────
+// ─── Declare Draw ─────────────────────────────────────────────────────────────
 function declareDraw(){
   if(!confirm('Declare this match as a Draw? Everyone goes home now 🏠')) return;
   G.matchOver = true;
@@ -1078,12 +1378,10 @@ function declareDraw(){
 
 function endMatch(){
   G.matchOver = true;
-  // Show declare draw button only in test matches during play — hide now
   if(el('declare-draw-btn')) el('declare-draw-btn').style.display = 'none';
 
   var msg = '', sub = '';
 
-  // Declared draw
   if(G._isDraw){
     msg = 'Match Drawn 🤝';
     sub = 'Match called off by mutual agreement.';
@@ -1110,26 +1408,16 @@ function endMatch(){
       sub = 'Both teams scored '+i1.score;
     }
   } else {
-    // Test match
-    var inn2 = G.innings[1]; // team batting 2nd
-
-    // Innings win: triggered when innings[2] batting team couldn't take lead
+    var inn2 = G.innings[1];
     if(G._inningsWin){
-      // Team that bowled 3rd (i.e. batted 2nd, innings[1]) wins
       var winner = G.teams[inn2.batting].name;
-      // Calculate margin: sum of team2's runs - sum of team1's runs
       var i0s = G.innings[0] ? G.innings[0].score : 0;
       var i1s = G.innings[1] ? G.innings[1].score : 0;
       var i2s = G.innings[2] ? G.innings[2].score : 0;
-      var bat1team = G.innings[0].batting; // team that batted 1st
-      var bat2team = G.innings[1].batting; // team that batted 2nd
-      // team1 total = i0s + i2s, team2 total = i1s
-      // if i1s > i0s + i2s → team2 wins by an innings and (i1s - i0s - i2s) runs
       var margin = i1s - i0s - i2s;
       if(margin > 0){
         msg = winner+' won by an innings and '+margin+' run'+(margin!==1?'s':'')+'!';
       } else {
-        // Shouldn't happen logically but fallback
         msg = winner+' won by an innings!';
       }
       sub = 'Innings victory';
@@ -1152,7 +1440,6 @@ function endMatch(){
       msg = t0.name+' won by '+margin2+' run'+(margin2!==1?'s':'')+'!';
       sub = 'Total: '+s0+' vs '+s1;
     } else if(s1 > s0){
-      // 4th innings chasing: won by wickets remaining
       var i4 = G.innings[3];
       if(i4){
         var wl2 = i4.batters.filter(function(b){return !b.out;}).length;
@@ -1174,32 +1461,30 @@ function endMatch(){
   showScreen('result');
 }
 
-// ─── Wicket ──────────────────────────────────────────────────────────────────
-// Returns a human-readable dismissal string e.g. "c Rahul b Sanjay" or "c & b Sanjay"
+// ─── Wicket ───────────────────────────────────────────────────────────────────
 function formatDismissal(b){
   if(!b.out) return 'not out';
   if(b.dismissal === 'c & b') return 'c & b ' + b.bowlerName;
   if(b.dismissal && b.dismissal.startsWith('c ')) return b.dismissal + ' b ' + b.bowlerName;
   return b.dismissal + ' b ' + b.bowlerName;
 }
+
 function openWicketModal(){
   var inn = curInn();
   if(!inn || inn.completed) return;
   selDismissal = null;
-  // Reset all dismissal buttons
   ['dis-bowled','dis-caught','dis-boundary','dis-runout','dis-stumped'].forEach(function(id){
     el(id).style.cssText = '';
   });
   el('next-batter-section').style.display = 'none';
   el('caught-by-section').style.display = 'none';
   el('caught-by-select').innerHTML = '';
-  // Build batter-out dropdown from those currently on crease
   var onCrease = [];
   if(inn.strikerIdx !== null)
     onCrease.push({idx:inn.strikerIdx, name:inn.batters[inn.strikerIdx].name});
   if(inn.nonStrikerIdx !== null && inn.nonStrikerIdx !== inn.strikerIdx)
     onCrease.push({idx:inn.nonStrikerIdx, name:inn.batters[inn.nonStrikerIdx].name});
-  if(!onCrease.length) return; // Nothing to dismiss
+  if(!onCrease.length) return;
   el('wicket-batter').innerHTML = onCrease.map(function(b){
     return '<option value="'+b.idx+'">'+b.name+'</option>';
   }).join('');
@@ -1216,10 +1501,7 @@ function setDismissal(d){
     el(map[d]).style.borderColor = 'var(--red-border)';
   }
   var inn = curInn();
-
-  // Show "Caught by" fielder dropdown only for Caught dismissal
   if(d === 'Caught'){
-    // Fielders = bowling team players (excluding current bowler who gets the wicket credit)
     var bowlTeam = G.teams[inn.bowling].players;
     var currentBowler = inn.bowlers[inn.currentBowlerIdx];
     el('caught-by-select').innerHTML = bowlTeam.map(function(p){
@@ -1229,7 +1511,6 @@ function setDismissal(d){
   } else {
     el('caught-by-section').style.display = 'none';
   }
-
   var avail = inn.batters.filter(function(b,i){
     return !b.out && i !== inn.strikerIdx && i !== inn.nonStrikerIdx;
   });
@@ -1248,11 +1529,9 @@ function confirmWicket(){
   batter.balls += 1;
   batter.bowlerName = inn.bowlers[inn.currentBowlerIdx].name;
 
-  // Build dismissal string — for Caught, record fielder name
   if(selDismissal === 'Caught'){
     var fielder = el('caught-by-select').value;
     batter.fielderName = fielder;
-    // "c Rahul b Sanjay" style
     batter.dismissal = fielder === batter.bowlerName ? 'c & b' : 'c ' + fielder;
   } else {
     batter.fielderName = '';
@@ -1265,9 +1544,7 @@ function confirmWicket(){
   bwlr.balls += 1;
   bwlr.wickets += 1;
 
-  // Close current partnership
   if(inn.partnerships.length) inn.partnerships[inn.partnerships.length-1].balls += 1;
-  // Open a new one
   inn.partnerships.push({runs:0,balls:0,b1:'',b2:''});
 
   var avail = inn.batters.filter(function(b,i){
@@ -1285,7 +1562,6 @@ function confirmWicket(){
       inn.partnerships[inn.partnerships.length-1].b1 = inn.batters[nextIdx].name;
       inn.partnerships[inn.partnerships.length-1].b2 = inn.nonStrikerIdx !== null ? inn.batters[inn.nonStrikerIdx].name : '';
     } else if(inn.nonStrikerIdx !== null){
-      // No new batter available: non-striker becomes the sole batter and takes strike
       inn.strikerIdx = inn.nonStrikerIdx;
       inn.nonStrikerIdx = null;
       inn.partnerships[inn.partnerships.length-1].b1 = inn.batters[inn.strikerIdx].name;
@@ -1301,10 +1577,11 @@ function confirmWicket(){
       inn.partnerships[inn.partnerships.length-1].b1 = inn.strikerIdx !== null ? inn.batters[inn.strikerIdx].name : '';
       inn.partnerships[inn.partnerships.length-1].b2 = inn.batters[nextIdx].name;
     }
-    // If no avail and striker is set, single batter remains on strike — nonStrikerIdx stays null
   }
 
   closeModal('wicket-modal');
+  // 🎉 WICKET animation + sound (show after modal closes)
+  triggerWicketAnim(); playSoundWicket();
   if(inn.balls.length % 6 === 0) endOver(inn);
   else{ checkInningsEnd(); if(!inn.completed) updateMatchUI(); }
 }
@@ -1330,7 +1607,7 @@ function confirmNewBowler(){
 
 function closeModal(id){ el(id).classList.add('hidden'); }
 
-// ─── Undo ─────────────────────────────────────────────────────────────────────
+// ─── Undo ──────────────────────────────────────────────────────────────────────
 function undoLast(){
   var inn = curInn();
   if(!inn || !inn.balls.length) return;
@@ -1353,7 +1630,6 @@ function undoLast(){
     if(inn.partnerships.length > 1) inn.partnerships.pop();
   } else {
     inn.score = Math.max(0, inn.score - last);
-    // BUG FIX: guard null striker on undo
     if(inn.strikerIdx !== null){
       var sk = inn.batters[inn.strikerIdx];
       if(sk){
@@ -1376,9 +1652,7 @@ function undoLast(){
   updateMatchUI();
 }
 
-// ─── Scorecard renderer ───────────────────────────────────────────────────────
-// BUG FIX #5 & #6: scorecard is always rendered fresh from G state.
-// Back button destination is controlled by G.scorecardFrom, set by showScorecard().
+// ─── Scorecard renderer ────────────────────────────────────────────────────────
 function renderScorecard(){
   var html = '';
   var show = Math.min(G.currentInnings + 1, G.innings.length);
@@ -1392,7 +1666,6 @@ function renderScorecard(){
     var isActive = (ii === G.currentInnings && !inn.completed);
 
     html += '<div style="margin-bottom:28px;">';
-    // Innings header
     html += '<div class="innings-header">';
     html +=   '<div>';
     html +=     '<div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:1px;">'+batName+(G.format==='test'?' — Innings '+(ii+1):'')+'</div>';
@@ -1402,7 +1675,6 @@ function renderScorecard(){
     html +=   (isActive ? '<div class="tag tag-amber">LIVE</div>' : '<div class="tag tag-blue">Final</div>');
     html += '</div>';
 
-    // Batting table
     html += '<div class="section-title">Batting</div>';
     html += '<div class="card" style="margin-bottom:8px;overflow-x:auto;">';
     html += '<table><thead><tr>';
@@ -1415,7 +1687,7 @@ function renderScorecard(){
       html += '<tr'+(isSk ? ' class="current-batter-row"' : '')+'>';
       html += '<td>';
       html +=   '<div style="font-weight:'+(b.out?'400':'600')+';font-size:13px;">'+b.name;
-      if(b.isJoker) html += '<span class="badge-joker">Joker</span>';
+      if(b.isJoker) html += '<span class="badge-joker" style="background:rgba(184,134,11,0.12);color:#a0720a;border:1px solid rgba(184,134,11,0.35);box-shadow:0 0 6px rgba(184,134,11,0.25);">Joker</span>';
       if(isSk && !b.out) html += '<span class="badge-strike" style="margin-left:5px;">&#9733;</span>';
       if(isNs && !b.out) html += '<span class="badge-ns">&dagger;</span>';
       html +=   '</div>';
@@ -1431,7 +1703,6 @@ function renderScorecard(){
     });
     html += '</tbody></table></div>';
 
-    // Partnerships
     var validP = inn.partnerships.filter(function(p){return p.balls > 0;});
     if(validP.length){
       html += '<div class="section-title">Partnerships</div>';
@@ -1443,7 +1714,6 @@ function renderScorecard(){
       html += '</tbody></table></div>';
     }
 
-    // Bowling table
     html += '<div class="section-title">Bowling — '+bowlName+'</div>';
     html += '<div class="card" style="overflow-x:auto;">';
     html += '<table><thead><tr><th style="min-width:80px;">Bowler</th><th>O</th><th>R</th><th>W</th><th>Eco</th><th>M</th></tr></thead><tbody>';
@@ -1463,7 +1733,7 @@ function renderScorecard(){
     '<p style="color:var(--text3);text-align:center;padding:40px 0;font-size:14px;">No innings data yet.</p>';
 }
 
-// ─── PDF Scorecard ────────────────────────────────────────────────────────────
+// ─── PDF Scorecard ─────────────────────────────────────────────────────────────
 function downloadScorecardPDF(){
   var resultMsg = el('result-message') ? el('result-message').textContent : '';
   var resultSub = el('result-sub') ? el('result-sub').textContent : '';
@@ -1490,7 +1760,6 @@ function downloadScorecardPDF(){
     html +=   '<div style="font-size:18px;font-weight:700;">'+inn.score+'/'+inn.wickets+'</div>';
     html +=   '<div style="font-size:11px;color:#6b7280;">'+ovStr+' ov</div>';
     html += '</div>';
-    // Batting
     html += '<h3>Batting</h3>';
     html += '<table><thead><tr><th>Batter</th><th>How Out</th><th>R</th><th>B</th><th>4s</th><th>1s</th><th>SR</th></tr></thead><tbody>';
     inn.batters.forEach(function(b){
@@ -1502,7 +1771,6 @@ function downloadScorecardPDF(){
       html += '</tr>';
     });
     html += '</tbody></table>';
-    // Bowling
     html += '<h3>Bowling — '+bowlName+'</h3>';
     html += '<table><thead><tr><th>Bowler</th><th>O</th><th>R</th><th>W</th><th>Eco</th><th>M</th></tr></thead><tbody>';
     inn.bowlers.filter(function(b){return b.balls>0;}).forEach(function(b){
@@ -1516,7 +1784,7 @@ function downloadScorecardPDF(){
   window.print();
 }
 
-// ─── Reset ────────────────────────────────────────────────────────────────────
+// ─── Reset ─────────────────────────────────────────────────────────────────────
 function resetAll(){
   G = {
     format:'limited', overs:6,
@@ -1540,6 +1808,271 @@ function resetAll(){
   updateJokerBtn();
   selectFormat('limited');
   showScreen('setup');
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  ANIMATION ENGINE
+// ════════════════════════════════════════════════════════════════════
+
+var _animTimer = null;
+
+function clearAnimOverlay(){
+  el('four-burst').classList.remove('show');
+  el('wicket-burst').classList.remove('show');
+  // Remove any dynamically added spark/crack elements
+  el('four-burst').querySelectorAll('.four-star').forEach(function(e){e.remove();});
+  el('wicket-burst').querySelectorAll('.crack').forEach(function(e){e.remove();});
+}
+
+// ── FOUR ──────────────────────────────────────────────────────────
+function triggerFourAnim(){
+  if(_animTimer) clearTimeout(_animTimer);
+  clearAnimOverlay();
+
+  var burst = el('four-burst');
+
+  // Generate 14 star sparks radiating outward at random angles
+  for(var i = 0; i < 14; i++){
+    var star = document.createElement('div');
+    star.className = 'four-star';
+    var angle = (i / 14) * 360 + Math.random() * 20;
+    var dist  = 80 + Math.random() * 90;
+    var rad   = angle * Math.PI / 180;
+    var tx    = Math.cos(rad) * dist;
+    var ty    = Math.sin(rad) * dist;
+    var size  = 6 + Math.random() * 8;
+    var delay = Math.random() * 0.1;
+    var greens = ['#22c55e','#16a34a','#86efac','#4ade80','#dcfce7'];
+    star.style.cssText =
+      '--tx:'+tx+'px;--ty:'+ty+'px;'+
+      'width:'+size+'px;height:'+size+'px;'+
+      'top:calc(50% - '+size/2+'px);left:calc(50% - '+size/2+'px);'+
+      'background:'+greens[i%greens.length]+';'+
+      'animation-delay:'+delay+'s;';
+    burst.appendChild(star);
+  }
+
+  burst.classList.add('show');
+  _animTimer = setTimeout(function(){
+    burst.classList.remove('show');
+    burst.querySelectorAll('.four-star').forEach(function(e){e.remove();});
+  }, 1100);
+}
+
+// ── WICKET ────────────────────────────────────────────────────────
+function triggerWicketAnim(){
+  if(_animTimer) clearTimeout(_animTimer);
+  clearAnimOverlay();
+
+  var burst = el('wicket-burst');
+
+  // 8 radiating crack lines
+  var angles = [0, 45, 90, 135, 180, 225, 270, 315];
+  angles.forEach(function(a){
+    var crack = document.createElement('div');
+    crack.className = 'crack';
+    var h = 50 + Math.random() * 60;
+    crack.style.cssText =
+      '--angle:'+a+'deg;'+
+      'height:'+h+'px;'+
+      'top:calc(50% - '+h+'px);left:calc(50% - 1px);';
+    burst.appendChild(crack);
+  });
+
+  burst.classList.add('show');
+  _animTimer = setTimeout(function(){
+    burst.classList.remove('show');
+    burst.querySelectorAll('.crack').forEach(function(e){e.remove();});
+  }, 1300);
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  SOUND ENGINE (Web Audio API — no external files needed)
+// ════════════════════════════════════════════════════════════════════
+
+var _audioCtx = null;
+function getAudioCtx(){
+  if(!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  // Resume in case of browser auto-suspend
+  if(_audioCtx.state === 'suspended') _audioCtx.resume();
+  return _audioCtx;
+}
+
+// Low-level helper: play a sine/square/triangle tone with envelope
+function playTone(freq, type, startTime, duration, gainPeak, ctx){
+  var osc = ctx.createOscillator();
+  var gain = ctx.createGain();
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, startTime);
+  gain.gain.setValueAtTime(0, startTime);
+  gain.gain.linearRampToValueAtTime(gainPeak, startTime + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+  osc.start(startTime);
+  osc.stop(startTime + duration + 0.05);
+}
+
+// Helper: pitch glide
+function playGlide(freqStart, freqEnd, type, startTime, duration, gainPeak, ctx){
+  var osc = ctx.createOscillator();
+  var gain = ctx.createGain();
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.type = type;
+  osc.frequency.setValueAtTime(freqStart, startTime);
+  osc.frequency.exponentialRampToValueAtTime(freqEnd, startTime + duration * 0.8);
+  gain.gain.setValueAtTime(0, startTime);
+  gain.gain.linearRampToValueAtTime(gainPeak, startTime + 0.03);
+  gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+  osc.start(startTime);
+  osc.stop(startTime + duration + 0.05);
+}
+
+// ── FOUR sound — triumphant ascending fanfare ──────────────────────
+function playSoundFour(){
+  try{
+    var ctx = getAudioCtx();
+    var t = ctx.currentTime;
+    // Rising arpeggio chord: C5 E5 G5 C6
+    var notes = [523, 659, 784, 1047];
+    notes.forEach(function(freq, i){
+      playTone(freq, 'sine', t + i * 0.07, 0.55 - i * 0.04, 0.28, ctx);
+    });
+    // Bright shimmer layer
+    playTone(2093, 'sine', t + 0.18, 0.4, 0.1, ctx);
+    // Warm thump underpinning
+    playGlide(160, 80, 'sine', t, 0.25, 0.35, ctx);
+    // Tail sparkle
+    playTone(1568, 'sine', t + 0.28, 0.35, 0.09, ctx);
+    playTone(2093, 'sine', t + 0.35, 0.3, 0.07, ctx);
+  }catch(e){}
+}
+
+// ── WICKET sound — dramatic crash + descending toll ────────────────
+function playSoundWicket(){
+  try{
+    var ctx = getAudioCtx();
+    var t = ctx.currentTime;
+    // Impact thud — low filtered noise burst
+    var buf = ctx.createBuffer(1, ctx.sampleRate * 0.15, ctx.sampleRate);
+    var data = buf.getChannelData(0);
+    for(var i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1);
+    var src = ctx.createBufferSource();
+    src.buffer = buf;
+    var filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(400, t);
+    filter.frequency.exponentialRampToValueAtTime(80, t + 0.15);
+    var thudGain = ctx.createGain();
+    thudGain.gain.setValueAtTime(0.6, t);
+    thudGain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+    src.connect(filter); filter.connect(thudGain); thudGain.connect(ctx.destination);
+    src.start(t); src.stop(t + 0.2);
+    // Descending toll — deep bells
+    var tollNotes = [220, 185, 155, 130];
+    tollNotes.forEach(function(freq, i){
+      playTone(freq, 'sine', t + i * 0.14, 0.6, 0.22, ctx);
+    });
+    // Tension sting — rising then falling
+    playGlide(440, 220, 'sawtooth', t + 0.05, 0.45, 0.08, ctx);
+    // Crack accent
+    playTone(880, 'square', t, 0.05, 0.12, ctx);
+  }catch(e){}
+}
+
+// ── ONE sound — soft single tick ──────────────────────────────────
+function playSoundOne(){
+  try{
+    var ctx = getAudioCtx();
+    var t = ctx.currentTime;
+    // Gentle two-note click: neutral, quiet
+    playTone(660, 'sine', t, 0.12, 0.14, ctx);
+    playTone(880, 'sine', t + 0.07, 0.1, 0.09, ctx);
+  }catch(e){}
+}
+
+// ── TWO sound — brief double tap ──────────────────────────────────
+function playSoundTwo(){
+  try{
+    var ctx = getAudioCtx();
+    var t = ctx.currentTime;
+    // Two slightly rising notes — understated but satisfying
+    playTone(700, 'sine', t, 0.13, 0.15, ctx);
+    playTone(840, 'sine', t + 0.1, 0.13, 0.12, ctx);
+    playTone(980, 'sine', t + 0.19, 0.12, 0.08, ctx);
+  }catch(e){}
+}
+
+// ── TOSS suspense drum-roll ───────────────────────────────────────
+function playSoundToss(){
+  try{
+    var ctx = getAudioCtx();
+    var t = ctx.currentTime;
+    var duration = 0.92; // matches flip animation
+
+    // Rising drum-roll: noise bursts speeding up
+    var hitCount = 14;
+    for(var i = 0; i < hitCount; i++){
+      // Accelerate: gaps shrink toward end
+      var progress = i / hitCount;
+      var hitT = t + progress * progress * duration * 0.82;
+      var buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.045), ctx.sampleRate);
+      var data = buf.getChannelData(0);
+      for(var s = 0; s < data.length; s++) data[s] = (Math.random()*2-1);
+      var src = ctx.createBufferSource();
+      src.buffer = buf;
+      var flt = ctx.createBiquadFilter();
+      flt.type = 'bandpass';
+      flt.frequency.value = 180 + progress * 120;
+      flt.Q.value = 1.2;
+      var g = ctx.createGain();
+      // Volume swells as roll speeds up
+      var vol = 0.08 + progress * 0.22;
+      g.gain.setValueAtTime(vol, hitT);
+      g.gain.exponentialRampToValueAtTime(0.001, hitT + 0.044);
+      src.connect(flt); flt.connect(g); g.connect(ctx.destination);
+      src.start(hitT); src.stop(hitT + 0.05);
+    }
+
+    // Rising tension tone underneath
+    var oscT = ctx.createOscillator();
+    var oscG = ctx.createGain();
+    oscT.connect(oscG); oscG.connect(ctx.destination);
+    oscT.type = 'sine';
+    oscT.frequency.setValueAtTime(110, t);
+    oscT.frequency.exponentialRampToValueAtTime(220, t + duration * 0.85);
+    oscG.gain.setValueAtTime(0, t);
+    oscG.gain.linearRampToValueAtTime(0.12, t + 0.1);
+    oscG.gain.linearRampToValueAtTime(0.18, t + duration * 0.7);
+    oscG.gain.exponentialRampToValueAtTime(0.001, t + duration * 0.9);
+    oscT.start(t); oscT.stop(t + duration);
+  }catch(e){}
+}
+
+// ── TOSS reveal fanfare ───────────────────────────────────────────
+function playSoundTossReveal(isHeads){
+  try{
+    var ctx = getAudioCtx();
+    var t = ctx.currentTime + 0.02;
+    if(isHeads){
+      // Bright upward burst — major chord
+      [[523,0],[659,0.06],[784,0.11],[1047,0.17],[1319,0.23]].forEach(function(n){
+        playTone(n[0], 'sine', t + n[1], 0.5 - n[1]*0.4, 0.22, ctx);
+      });
+      // Shimmer top
+      playTone(2093, 'sine', t + 0.22, 0.35, 0.1, ctx);
+      // Bass punch
+      playGlide(130, 65, 'sine', t, 0.28, 0.3, ctx);
+    } else {
+      // Cooler reveal — slightly more mysterious, minor flavour
+      [[392,0],[494,0.07],[587,0.13],[784,0.2],[988,0.27]].forEach(function(n){
+        playTone(n[0], 'sine', t + n[1], 0.5 - n[1]*0.35, 0.2, ctx);
+      });
+      playTone(1568, 'sine', t + 0.25, 0.3, 0.09, ctx);
+      playGlide(110, 55, 'sine', t, 0.28, 0.28, ctx);
+    }
+  }catch(e){}
 }
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
