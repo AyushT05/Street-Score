@@ -221,17 +221,96 @@ table tr:last-child td{border:none;}
 
 /* Print styles — scorecard PDF */
 @media print{
-  body{background:#fff;font-size:12px;}
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
+  body{background:#f2f4f7;font-family:'Outfit',system-ui,sans-serif;font-size:13px;color:#111827;margin:0;}
   .screen{display:none!important;}
-  #print-scorecard{display:block!important;}
-  #print-scorecard table{width:100%;border-collapse:collapse;font-size:11px;}
-  #print-scorecard th,#print-scorecard td{padding:5px 6px;border:1px solid #ccc;text-align:left;}
-  #print-scorecard th{background:#f3f4f6;font-weight:700;}
-  #print-scorecard h1{font-size:18px;margin-bottom:4px;}
-  #print-scorecard h2{font-size:13px;margin:14px 0 4px;color:#374151;}
-  #print-scorecard h3{font-size:11px;margin:10px 0 3px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;}
-  #print-scorecard .pr-result{background:#f0fdf4;border:1px solid #86efac;padding:10px 14px;border-radius:8px;margin-bottom:16px;}
-  #print-scorecard .pr-inn-header{display:flex;justify-content:space-between;align-items:center;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:8px 12px;margin:10px 0 4px;}
+  #print-scorecard{display:block!important;padding:0;margin:0;}
+
+  /* Cover page */
+  .pr-cover{
+    width:100%;min-height:100vh;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;background:#f2f4f7;
+    page-break-after:always;
+  }
+  .pr-cover-logo{font-size:13px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#9ca3af;margin-bottom:20px;}
+  .pr-cover-title{font-size:34px;font-weight:700;letter-spacing:-1px;color:#111827;margin-bottom:4px;text-align:center;}
+  .pr-cover-sub{font-size:15px;color:#6b7280;margin-bottom:28px;}
+  .pr-cover-result{
+    background:#f0fdf4;border:1.5px solid #86efac;border-radius:14px;
+    padding:18px 28px;text-align:center;max-width:380px;
+  }
+  .pr-cover-result-label{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#16a34a;margin-bottom:6px;}
+  .pr-cover-result-msg{font-size:18px;font-weight:700;color:#111827;line-height:1.35;}
+  .pr-cover-result-sub{font-size:13px;color:#374151;margin-top:4px;}
+
+  /* Totals row on cover */
+  .pr-cover-totals{display:flex;gap:24px;margin-top:22px;}
+  .pr-cover-team-score{
+    background:#ffffff;border:1.5px solid #e5e7eb;border-radius:12px;
+    padding:14px 22px;text-align:center;min-width:120px;
+  }
+  .pr-cover-team-name{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#9ca3af;margin-bottom:4px;}
+  .pr-cover-team-runs{font-size:28px;font-weight:700;letter-spacing:-1.5px;color:#111827;}
+
+  /* Each innings = its own page */
+  .pr-innings-page{
+    padding:24px 28px;background:#f2f4f7;
+    page-break-before:always;page-break-inside:avoid;
+    min-height:100vh;box-sizing:border-box;
+  }
+
+  /* Innings header (mimics .innings-header in app) */
+  .pr-inn-header{
+    background:#ffffff;border:1.5px solid #e5e7eb;border-radius:12px;
+    padding:14px 18px;margin-bottom:14px;
+    display:flex;justify-content:space-between;align-items:center;
+    box-shadow:0 1px 3px rgba(0,0,0,0.06);
+  }
+  .pr-inn-header-left{}
+  .pr-inn-header-label{font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#9ca3af;margin-bottom:2px;}
+  .pr-inn-header-team{font-size:18px;font-weight:700;color:#111827;letter-spacing:-0.5px;}
+  .pr-inn-header-right{text-align:right;}
+  .pr-inn-score{font-size:32px;font-weight:700;letter-spacing:-1.5px;color:#111827;line-height:1;}
+  .pr-inn-overs{font-size:12px;color:#6b7280;margin-top:2px;}
+
+  /* Section title (mimics .section-title) */
+  .pr-section-title{
+    font-size:10px;font-weight:700;letter-spacing:1.2px;color:#9ca3af;
+    text-transform:uppercase;margin:14px 0 6px;
+  }
+
+  /* Card wrapper (mimics .card) */
+  .pr-card{
+    background:#ffffff;border:1.5px solid #e5e7eb;border-radius:12px;
+    overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.06);
+    margin-bottom:10px;
+  }
+
+  /* Tables */
+  .pr-card table{width:100%;border-collapse:collapse;font-size:12px;}
+  .pr-card table th{
+    color:#9ca3af;font-weight:700;text-align:left;
+    padding:8px 10px;border-bottom:1.5px solid #e5e7eb;
+    font-size:10px;letter-spacing:0.5px;background:#f9fafb;
+  }
+  .pr-card table td{padding:8px 10px;border-bottom:1px solid #f3f4f6;vertical-align:middle;}
+  .pr-card table tr:last-child td{border:none;}
+  .pr-card table td:first-child{font-weight:600;color:#111827;}
+
+  /* Dismissal text */
+  .pr-dismiss{font-size:10px;color:#9ca3af;margin-top:1px;}
+
+  /* Joker badge */
+  .pr-joker-badge{
+    display:inline-block;background:#fffbeb;color:#d97706;
+    font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;
+    margin-left:4px;letter-spacing:0.5px;text-transform:uppercase;
+    border:1px solid #fcd34d;vertical-align:middle;
+  }
+
+  /* Numeric cells right-align */
+  .pr-card table td.num,
+  .pr-card table th.num{text-align:right;}
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -1737,17 +1816,42 @@ function renderScorecard(){
 function downloadScorecardPDF(){
   var resultMsg = el('result-message') ? el('result-message').textContent : '';
   var resultSub = el('result-sub') ? el('result-sub').textContent : '';
+  var matchLabel = G.teams[0].name+' vs '+G.teams[1].name+
+    (G.format==='test' ? ' · Test Match' : ' · '+G.overs+' Overs');
+
+  // Compute total runs per team for cover
+  var teamTotals = [{runs:0,wkts:0},{runs:0,wkts:0}];
+  var show = Math.min(G.currentInnings + 1, G.innings.length);
+  for(var ti=0;ti<show;ti++){
+    var inn0=G.innings[ti];
+    if(inn0){ teamTotals[inn0.batting].runs+=inn0.score; teamTotals[inn0.batting].wkts=inn0.wickets; }
+  }
+
   var html = '';
-  html += '<h1>Street Score — Match Scorecard</h1>';
-  html += '<div style="font-size:12px;color:#6b7280;margin-bottom:12px;">'+
-    G.teams[0].name+' vs '+G.teams[1].name+
-    (G.format==='test' ? ' · Test Match' : ' · '+G.overs+' Overs')+'</div>';
+
+  // ── Cover page ──────────────────────────────────────────────────
+  html += '<div class="pr-cover">';
+  html +=   '<div class="pr-cover-logo">Street Score</div>';
+  html +=   '<div class="pr-cover-title">Match Scorecard</div>';
+  html +=   '<div class="pr-cover-sub">'+matchLabel+'</div>';
   if(resultMsg){
-    html += '<div class="pr-result"><strong>Result:</strong> '+resultMsg;
-    if(resultSub) html += '<br><span style="font-size:11px;color:#374151;">'+resultSub+'</span>';
+    html += '<div class="pr-cover-result">';
+    html +=   '<div class="pr-cover-result-label">Result</div>';
+    html +=   '<div class="pr-cover-result-msg">'+resultMsg+'</div>';
+    if(resultSub) html += '<div class="pr-cover-result-sub">'+resultSub+'</div>';
     html += '</div>';
   }
-  var show = Math.min(G.currentInnings + 1, G.innings.length);
+  html += '<div class="pr-cover-totals">';
+  for(var t=0;t<2;t++){
+    html += '<div class="pr-cover-team-score">';
+    html +=   '<div class="pr-cover-team-name">'+G.teams[t].name+'</div>';
+    html +=   '<div class="pr-cover-team-runs">'+teamTotals[t].runs+'</div>';
+    html += '</div>';
+  }
+  html += '</div>';
+  html += '</div>'; // end cover
+
+  // ── One page per innings ─────────────────────────────────────────
   for(var ii = 0; ii < show; ii++){
     var inn = G.innings[ii];
     if(!inn) continue;
@@ -1755,31 +1859,69 @@ function downloadScorecardPDF(){
     var bowlName = G.teams[inn.bowling].name;
     var tb = inn.balls.length;
     var ovStr = Math.floor(tb/6)+'.'+tb%6;
+    var innLabel = G.format==='test' ? 'Innings '+(ii+1) : 'Innings';
+
+    html += '<div class="pr-innings-page">';
+
+    // Innings header card
     html += '<div class="pr-inn-header">';
-    html +=   '<div><strong>'+batName+(G.format==='test'?' — Innings '+(ii+1):'')+'</strong></div>';
-    html +=   '<div style="font-size:18px;font-weight:700;">'+inn.score+'/'+inn.wickets+'</div>';
-    html +=   '<div style="font-size:11px;color:#6b7280;">'+ovStr+' ov</div>';
+    html +=   '<div class="pr-inn-header-left">';
+    html +=     '<div class="pr-inn-header-label">'+innLabel+'</div>';
+    html +=     '<div class="pr-inn-header-team">'+batName+'</div>';
+    html +=   '</div>';
+    html +=   '<div class="pr-inn-header-right">';
+    html +=     '<div class="pr-inn-score">'+inn.score+'/'+inn.wickets+'</div>';
+    html +=     '<div class="pr-inn-overs">'+ovStr+' overs</div>';
+    html +=   '</div>';
     html += '</div>';
-    html += '<h3>Batting</h3>';
-    html += '<table><thead><tr><th>Batter</th><th>How Out</th><th>R</th><th>B</th><th>4s</th><th>1s</th><th>SR</th></tr></thead><tbody>';
+
+    // Batting table
+    html += '<div class="pr-section-title">Batting</div>';
+    html += '<div class="pr-card">';
+    html += '<table><thead><tr>';
+    html += '<th>Batter</th><th>How Out</th>';
+    html += '<th class="num">R</th><th class="num">B</th>';
+    html += '<th class="num">4s</th><th class="num">1s</th><th class="num">SR</th>';
+    html += '</tr></thead><tbody>';
     inn.batters.forEach(function(b){
       var sr = b.balls > 0 ? (b.runs/b.balls*100).toFixed(0) : '-';
       html += '<tr>';
-      html += '<td>'+b.name+(b.isJoker?' (Joker)':'')+'</td>';
-      html += '<td style="font-size:10px;color:#6b7280;">'+(b.out ? formatDismissal(b) : 'not out')+'</td>';
-      html += '<td>'+b.runs+'</td><td>'+b.balls+'</td><td>'+b.fours+'</td><td>'+b.ones+'</td><td>'+sr+'</td>';
+      html += '<td>'+b.name+(b.isJoker?'<span class="pr-joker-badge">Joker</span>':'')+'</td>';
+      html += '<td><span class="pr-dismiss">'+(b.out ? formatDismissal(b) : 'not out')+'</span></td>';
+      html += '<td class="num">'+b.runs+'</td>';
+      html += '<td class="num">'+b.balls+'</td>';
+      html += '<td class="num">'+b.fours+'</td>';
+      html += '<td class="num">'+b.ones+'</td>';
+      html += '<td class="num">'+sr+'</td>';
       html += '</tr>';
     });
-    html += '</tbody></table>';
-    html += '<h3>Bowling — '+bowlName+'</h3>';
-    html += '<table><thead><tr><th>Bowler</th><th>O</th><th>R</th><th>W</th><th>Eco</th><th>M</th></tr></thead><tbody>';
+    html += '</tbody></table></div>';
+
+    // Bowling table
+    html += '<div class="pr-section-title">Bowling — '+bowlName+'</div>';
+    html += '<div class="pr-card">';
+    html += '<table><thead><tr>';
+    html += '<th>Bowler</th>';
+    html += '<th class="num">O</th><th class="num">R</th><th class="num">W</th>';
+    html += '<th class="num">Eco</th><th class="num">M</th>';
+    html += '</tr></thead><tbody>';
     inn.bowlers.filter(function(b){return b.balls>0;}).forEach(function(b){
       var ovs = Math.floor(b.balls/6)+'.'+b.balls%6;
       var eco = b.balls>0 ? (b.runs/(b.balls/6)).toFixed(1) : '-';
-      html += '<tr><td>'+b.name+'</td><td>'+ovs+'</td><td>'+b.runs+'</td><td>'+b.wickets+'</td><td>'+eco+'</td><td>'+b.maidens+'</td></tr>';
+      html += '<tr>';
+      html += '<td>'+b.name+'</td>';
+      html += '<td class="num">'+ovs+'</td>';
+      html += '<td class="num">'+b.runs+'</td>';
+      html += '<td class="num">'+b.wickets+'</td>';
+      html += '<td class="num">'+eco+'</td>';
+      html += '<td class="num">'+b.maidens+'</td>';
+      html += '</tr>';
     });
-    html += '</tbody></table><br>';
+    html += '</tbody></table></div>';
+
+    html += '</div>'; // end pr-innings-page
   }
+
   el('print-scorecard').innerHTML = html;
   window.print();
 }
